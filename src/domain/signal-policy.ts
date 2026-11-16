@@ -1,4 +1,5 @@
-import { qualifyingIncrease, type PulsePolicyConfig } from './pulse-policy-config';
+import type { PulsePolicyConfig } from './pulse-policy-config';
+import { median, ruleForBaseline, type RuleStatus } from './pulse-rule';
 import {
   assessPulseCandidate,
   rejectionAdvancesAnchor,
@@ -8,20 +9,6 @@ import {
 } from './pulse-reading';
 
 export type SignalQuality = 'warming-up' | 'awaiting-data' | 'usable' | 'unusable' | 'stale';
-
-export type RuleStatus =
-  | { readonly kind: 'awaiting-baseline' }
-  | {
-      readonly kind: 'available';
-      readonly baselineBpm: number;
-      readonly thresholdBpm: number;
-      readonly rearmBelowBpm: number;
-    }
-  | {
-      readonly kind: 'unavailable';
-      readonly baselineBpm: number;
-      readonly thresholdBpm: number;
-    };
 
 export interface SignalPolicyState {
   readonly sessionId: string;
@@ -144,15 +131,17 @@ export function tickSignalPolicy(
   return { state: next, events };
 }
 
-/** SDK validation status changes take effect immediately, not only when the next packet arrives. */
-export function noteValidationStatus(
+/**
+ * Record an invalid interval immediately (non-OK SDK validation status or a
+ * malformed packet) rather than waiting for the next reading to arrive.
+ */
+export function markInvalidInterval(
   state: SignalPolicyState,
-  ok: boolean,
   nowMs: number,
   config: PulsePolicyConfig,
 ): PolicyStep {
   const events: SignalPolicyEvent[] = [];
-  if (ok || inWarmUp(state, nowMs, config)) return { state, events };
+  if (inWarmUp(state, nowMs, config)) return { state, events };
   return { state: interrupt(state, 'unusable', nowMs, events), events };
 }
 
@@ -172,31 +161,6 @@ export function recalibrate(state: SignalPolicyState, nowMs: number): PolicyStep
       armed: true,
     },
     events,
-  };
-}
-
-export function median(values: readonly number[]): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  const middle = Math.floor(sorted.length / 2);
-  const upper = sorted[middle];
-  if (upper === undefined) throw new RangeError('median of an empty sample');
-  if (sorted.length % 2 === 1) return upper;
-  const lower = sorted[middle - 1] ?? upper;
-  return (lower + upper) / 2;
-}
-
-export function ruleForBaseline(baselineBpm: number, config: PulsePolicyConfig): RuleStatus {
-  const increase = qualifyingIncrease(baselineBpm, config);
-  const thresholdBpm = baselineBpm + increase;
-  // A reading must exceed the threshold, and readings above the operating range are rejected.
-  if (thresholdBpm >= config.operatingRangeBpm.max) {
-    return { kind: 'unavailable', baselineBpm, thresholdBpm };
-  }
-  return {
-    kind: 'available',
-    baselineBpm,
-    thresholdBpm,
-    rearmBelowBpm: baselineBpm + increase / 2,
   };
 }
 

@@ -3,14 +3,13 @@ import { PULSE_POLICY } from '../../src/domain/pulse-policy-config';
 import {
   applyPulseCandidate,
   createSignalPolicy,
-  median,
-  noteValidationStatus,
+  markInvalidInterval,
   recalibrate,
-  ruleForBaseline,
   tickSignalPolicy,
   type SignalPolicyEvent,
   type SignalPolicyState,
 } from '../../src/domain/signal-policy';
+import { median, ruleForBaseline } from '../../src/domain/pulse-rule';
 import type { PulseCandidate } from '../../src/domain/pulse-reading';
 import { syntheticPulseStream, type SyntheticSegment } from '../fixtures/synthetic-pulse';
 
@@ -229,7 +228,7 @@ describe('dropouts and invalid data', () => {
       { durationMs: 60_001, bpm: 70 },
       { durationMs: 15_000, bpm: 90 },
     ]);
-    const step = noteValidationStatus(before.state, false, before.endMs + 10, config);
+    const step = markInvalidInterval(before.state, before.endMs + 10, config);
     expect(step.state.quality).toBe('unusable');
     expect(step.state.persistenceSinceMs).toBeNull();
     const rejected = feed(

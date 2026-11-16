@@ -37,7 +37,3 @@ export type GateValidation = 'pending-device-validation' | 'device-validated';
 export type PulsePolicyConfig = Omit<typeof PULSE_POLICY, 'gateValidation'> & {
   readonly gateValidation: GateValidation;
 };
-
-export function qualifyingIncrease(baselineBpm: number, config: PulsePolicyConfig): number {
-  return Math.max(config.minIncreaseBpm, baselineBpm * config.minIncreaseFraction);
-}
