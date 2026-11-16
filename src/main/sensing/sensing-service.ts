@@ -187,9 +187,13 @@ export function createSensingService(deps: SensingDeps) {
       publish();
       return { status: 'ok' };
     } catch (error) {
-      failure = failureFromThrown(error, 'The Presage SDK could not start.');
-      if (activeSession()?.id === id) await stop('start-failed');
-      return { status: 'error', message: failure.message };
+      const startFailure = failureFromThrown(error, 'The Presage SDK could not start.');
+      // A failure for a start the user already cancelled is not shown as a current error.
+      if (activeSession()?.id === id) {
+        failure = startFailure;
+        await stop('start-failed');
+      }
+      return { status: 'error', message: startFailure.message };
     }
   }
 
@@ -199,14 +203,20 @@ export function createSensingService(deps: SensingDeps) {
     active = null;
     lifecycle = ending === null && lifecycle !== 'checking-readiness' ? 'idle' : 'stopping';
     publish();
-    if (ending !== null) {
-      ending.stopTimer();
-      await ending.session?.shutdown();
-      deps.emit({ kind: 'session-ended', sessionId: ending.id, reason });
+    try {
+      if (ending !== null) {
+        ending.stopTimer();
+        await ending.session?.shutdown();
+      }
+    } catch (error) {
+      // The session is abandoned either way; report it instead of leaving sensing stuck in 'stopping'.
+      failure = failureFromThrown(error, 'The camera session could not be released cleanly.');
+    } finally {
+      if (ending !== null) deps.emit({ kind: 'session-ended', sessionId: ending.id, reason });
+      await pendingWork.catch(() => undefined);
+      lifecycle = 'idle';
+      publish();
     }
-    await pendingWork.catch(() => undefined);
-    lifecycle = 'idle';
-    publish();
   }
 
   /** Releases capture and discards all session measurements. Never restarts anything. */
@@ -223,13 +233,17 @@ export function createSensingService(deps: SensingDeps) {
     start,
     stop,
     hasApiKey: () => apiKey !== null,
-    setApiKey(key: string) {
+    setApiKey(key: string): CommandResult {
+      if (lifecycle !== 'idle' && lifecycle !== 'ready-to-start') {
+        return { status: 'error', message: 'Stop sensing before changing the key.' };
+      }
       apiKey = key;
       keyGeneration += 1;
       readiness = null;
       if (lifecycle === 'ready-to-start') lifecycle = 'idle';
       if (failure?.kind === 'no-api-key' || failure?.kind === 'invalid-key') failure = null;
       publish();
+      return { status: 'ok' };
     },
     async clearApiKey() {
       await stop('api-key-cleared');

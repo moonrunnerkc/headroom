@@ -160,4 +160,24 @@ describe('automatic mode', () => {
     expect(state.mode).toBe('suggest');
     expect(state.pending).toBeNull();
   });
+
+  describe('leaving automatic mode', () => {
+    it('cancels a change still waiting for a safe boundary', () => {
+      const waiting = apply(
+        suggest(),
+        { type: 'grant-automatic' },
+        { type: 'set-mode', mode: 'automatic' },
+        trigger(),
+      ).state;
+      expect(waiting.pending?.kind).toBe('awaiting-safe-boundary');
+      const { state, events } = apply(
+        waiting,
+        { type: 'set-mode', mode: 'suggest' },
+        { type: 'safe-boundary' },
+      );
+      expect(state.pending).toBeNull();
+      expect(state.layout).toBe('standard');
+      expect(events).toContainEqual({ kind: 'suggestion-expired', reason: 'user-choice' });
+    });
+  });
 });

@@ -156,7 +156,12 @@ export function reducePresentation(
       if (action.mode === 'automatic' && !(state.automaticConsent && state.automaticAvailable)) {
         return step(state);
       }
-      const expired = action.mode === 'manual' ? expirePending(state, 'user-choice') : step(state);
+      // Leaving a mode cancels what it alone may do: Manual drops any pending sensor change, and
+      // leaving Automatic drops a change still waiting for a safe boundary.
+      const cancel =
+        action.mode === 'manual' ||
+        (action.mode !== 'automatic' && state.pending?.kind === 'awaiting-safe-boundary');
+      const expired = cancel ? expirePending(state, 'user-choice') : step(state);
       return step({ ...expired.state, mode: action.mode }, ...expired.events, {
         kind: 'mode-changed',
         mode: action.mode,
@@ -206,6 +211,7 @@ export function reducePresentation(
     }
     case 'safe-boundary': {
       if (state.pending?.kind !== 'awaiting-safe-boundary') return step(state);
+      if (state.mode !== 'automatic' || !state.automaticConsent) return step(state);
       const next = applySensorLayout(state, state.pending.triggerId, 'automatic');
       return step(next, { kind: 'layout-changed', layout: 'focused', cause: 'automatic' });
     }

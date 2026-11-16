@@ -20,6 +20,14 @@ export function createDraftStore(root: string) {
   const preferencesPath = join(root, 'preferences.json');
   const draftPath = (id: string) => join(draftsDir, `${draftIdSchema.parse(id)}.json`);
   const ensureDirs = () => mkdir(draftsDir, { recursive: true, mode: 0o700 });
+  // Writes and deletions run one at a time, so an older save cannot land after a newer save or
+  // recreate a file after a deletion.
+  let writes: Promise<unknown> = Promise.resolve();
+  function serialized<T>(operation: () => Promise<T>): Promise<T> {
+    const result = writes.then(operation, operation);
+    writes = result.catch(() => undefined);
+    return result;
+  }
 
   async function list(): Promise<DraftListEntry[]> {
     await ensureDirs();
@@ -75,7 +83,7 @@ export function createDraftStore(root: string) {
     return { status: 'ok', draft: parsed.data };
   }
 
-  async function save(
+  async function saveNow(
     draft: StoredDraft,
   ): Promise<{ status: 'saved'; savedAt: string } | { status: 'error'; message: string }> {
     try {
@@ -87,7 +95,7 @@ export function createDraftStore(root: string) {
     }
   }
 
-  async function remove(
+  async function removeNow(
     id: string,
   ): Promise<{ status: 'ok' } | { status: 'error'; message: string }> {
     const path = draftPath(id);
@@ -100,7 +108,7 @@ export function createDraftStore(root: string) {
   }
 
   /** Delete every draft file and the preferences file Headroom wrote. Exported copies are untouched. */
-  async function removeAll(): Promise<{ status: 'ok' } | { status: 'error'; message: string }> {
+  async function removeAllNow(): Promise<{ status: 'ok' } | { status: 'error'; message: string }> {
     try {
       await rm(draftsDir, { recursive: true, force: true });
       await rm(preferencesPath, { force: true });
@@ -125,7 +133,7 @@ export function createDraftStore(root: string) {
     return { status: 'ok', preferences: parsed.data };
   }
 
-  async function savePreferences(preferences: Preferences) {
+  async function savePreferencesNow(preferences: Preferences) {
     try {
       await mkdir(root, { recursive: true, mode: 0o700 });
       await writeFileAtomic(preferencesPath, `${JSON.stringify(preferences, null, 2)}\n`);
@@ -135,7 +143,16 @@ export function createDraftStore(root: string) {
     }
   }
 
-  return { list, load, save, remove, removeAll, loadPreferences, savePreferences };
+  return {
+    list,
+    load,
+    loadPreferences,
+    save: (draft: StoredDraft) => serialized(() => saveNow(draft)),
+    remove: (id: string) => serialized(() => removeNow(id)),
+    removeAll: () => serialized(removeAllNow),
+    savePreferences: (preferences: Preferences) =>
+      serialized(() => savePreferencesNow(preferences)),
+  };
 }
 
 export type DraftStore = ReturnType<typeof createDraftStore>;

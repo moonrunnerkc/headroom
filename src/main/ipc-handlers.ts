@@ -116,10 +116,9 @@ export function registerIpcHandlers(services: IpcServices): () => void {
     services.cameraPermission(request),
   );
   // The key is accepted here and never sent back to the renderer, logged, or persisted.
-  handle(INVOKE_CHANNELS.setApiKey, z.tuple([apiKeySchema]), (_w, key) => {
-    services.sensing.setApiKey(key);
-    return { status: 'ok' };
-  });
+  handle(INVOKE_CHANNELS.setApiKey, z.tuple([apiKeySchema]), (_w, key) =>
+    services.sensing.setApiKey(key),
+  );
   handle(INVOKE_CHANNELS.clearApiKey, none, async () => {
     await services.sensing.clearApiKey();
     return { status: 'ok' };

@@ -27,8 +27,10 @@ export function SensingExplainer() {
           this session only.
         </li>
         <li>
-          <strong>How to stop:</strong> use Stop sensing in the top bar at any time. Closing the
-          app, sleeping the Mac, or an error also stops it, and it never restarts by itself.
+          <strong>How to stop:</strong> use Stop sensing in the top bar at any time. During the
+          readiness check, the camera is released when the check ends (up to about 40 seconds).
+          Closing the app, sleeping the Mac, or an error also stops sensing, and it never restarts
+          by itself.
         </li>
       </ul>
     </div>

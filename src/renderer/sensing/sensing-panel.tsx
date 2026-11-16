@@ -202,7 +202,8 @@ export function SensingPanel({
         </div>
         <p className="muted">
           The readiness check uses the camera for up to about 40 seconds to confirm this Mac can
-          measure reliably. It records nothing.
+          measure reliably. It records nothing. The SDK cannot cancel a check once it starts, so
+          Stop takes effect when the check ends.
         </p>
         {snapshot !== null && snapshot.readiness !== null && (
           <p role="status">

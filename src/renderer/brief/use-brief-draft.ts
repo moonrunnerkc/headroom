@@ -70,7 +70,7 @@ export function useBriefDraft(recorder: EvidenceRecorder) {
     applyList(await bridge().listDrafts());
   }, [applyList]);
 
-  const persist = useCallback(async () => {
+  const persist = useCallback(async (): Promise<boolean> => {
     const snapshot = latest.current;
     setSave({ kind: 'saving' });
     const result = await bridge().saveDraft(snapshot);
@@ -79,12 +79,20 @@ export function useBriefDraft(recorder: EvidenceRecorder) {
       setSave({ kind: 'saved', at: result.savedAt });
       recorder.record('draft-saved');
       void refreshList();
+      return true;
     } else {
       // The in-memory draft is untouched; the user can retry or export it.
       setSave({ kind: 'failed', message: result.message });
       recorder.record('draft-save-failed');
+      return false;
     }
   }, [recorder, refreshList]);
+
+  /** Before showing another draft, save pending edits; refuse to switch if they cannot be saved. */
+  const flushBeforeReplace = useCallback(async (): Promise<string | null> => {
+    if (!dirty.current || (await persist())) return null;
+    return 'Your current draft could not be saved, so it is still open. Retry saving or export it first.';
+  }, [persist]);
 
   useEffect(() => {
     void bridge().listDrafts().then(applyList);
@@ -142,18 +150,24 @@ export function useBriefDraft(recorder: EvidenceRecorder) {
       recorder.record('brief-completed');
       return true;
     },
-    startNew: () => {
-      replace(newDraft(EMPTY_BRIEF, false), 'blank');
+    startNew: async (): Promise<string | null> => {
+      const problem = await flushBeforeReplace();
+      if (problem === null) replace(newDraft(EMPTY_BRIEF, false), 'blank');
+      return problem;
     },
     /** After local data deletion, drop the in-memory draft too so autosave cannot recreate it. */
     forgetAll: () => {
       replace(newDraft(EMPTY_BRIEF, false), 'blank');
       void refreshList();
     },
-    loadSample: () => {
-      replace(newDraft(SAMPLE_BRIEF, true), 'sample');
+    loadSample: async (): Promise<string | null> => {
+      const problem = await flushBeforeReplace();
+      if (problem === null) replace(newDraft(SAMPLE_BRIEF, true), 'sample');
+      return problem;
     },
     open: async (id: string): Promise<string | null> => {
+      const problem = await flushBeforeReplace();
+      if (problem !== null) return problem;
       const result = await bridge().loadDraft(id);
       if (result.status !== 'ok') return result.message;
       replace(result.draft, 'stored');

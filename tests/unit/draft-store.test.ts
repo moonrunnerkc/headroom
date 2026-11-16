@@ -127,4 +127,16 @@ describe('draft store', () => {
     );
     expect(await store.loadPreferences()).toMatchObject({ status: 'unreadable' });
   });
+
+  it('serializes writes so an older save cannot overwrite a newer one or outlive a deletion', async () => {
+    const store = createDraftStore(root);
+    const older = store.save(draft({ fields: { ...EMPTY_BRIEF, title: 'older' } }));
+    const newer = store.save(draft({ fields: { ...EMPTY_BRIEF, title: 'newer' } }));
+    await Promise.all([older, newer]);
+    expect(await store.load(id)).toMatchObject({ draft: { fields: { title: 'newer' } } });
+    const inFlight = store.save(draft({ fields: { ...EMPTY_BRIEF, title: 'late' } }));
+    const cleared = store.removeAll();
+    await Promise.all([inFlight, cleared]);
+    expect(await store.list()).toEqual([]);
+  });
 });

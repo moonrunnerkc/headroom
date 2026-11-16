@@ -100,4 +100,20 @@ describe('project brief layouts', () => {
     expect(texts.some((t) => t.includes('short name'))).toBe(true);
     expect(texts.some((t) => t.includes('Enter project title'))).toBe(true);
   });
+
+  it('keeps a draft that failed to save instead of replacing it with a new one', async () => {
+    installFakeBridge({
+      saveDraft: () => Promise.resolve({ status: 'error', message: 'The disk is full.' }),
+    });
+    const user = userEvent.setup();
+    render(<Harness />);
+    const title = screen.getByLabelText(/^Project title/);
+    await user.type(title, 'Unsaved work');
+    expect(
+      await screen.findByText(/could not be saved: The disk is full/, {}, { timeout: 3_000 }),
+    ).toBeTruthy();
+    await user.click(screen.getByRole('button', { name: 'New blank brief' }));
+    expect(await screen.findByText(/still open\. Retry saving or export it first/)).toBeTruthy();
+    expect(screen.getByLabelText(/^Project title/)).toHaveProperty('value', 'Unsaved work');
+  });
 });

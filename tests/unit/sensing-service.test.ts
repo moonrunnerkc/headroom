@@ -228,4 +228,39 @@ describe('lifecycle and teardown', () => {
     expect(h.last().readiness).toBeNull();
     expect(h.sessions[0]?.shutdown).toHaveBeenCalledTimes(1);
   });
+
+  it('a failed SDK shutdown still ends the session and returns to idle', async () => {
+    const h = await running();
+    h.sessions[0]?.shutdown.mockImplementation(() =>
+      Promise.reject(new Error('native stop failed')),
+    );
+    await h.service.stop('user');
+    expect(h.last()).toMatchObject({ lifecycle: 'idle', sessionId: null });
+    expect(h.last().failure?.message).toMatch(/could not be released/);
+    expect(h.events).toContainEqual({
+      kind: 'session-ended',
+      sessionId: 'session-1',
+      reason: 'user',
+    });
+    expect(h.timers.active).toBe(0);
+  });
+
+  it('does not show a start failure for a start the user already cancelled', async () => {
+    const opening = Promise.withResolvers<FakeSession>();
+    const h = harness({ openSession: () => opening.promise });
+    h.service.setApiKey('test-key-123');
+    await h.service.checkReadiness('cam-1');
+    const starting = h.service.start('cam-1');
+    const stopping = h.service.stop('user');
+    opening.reject(Object.assign(new Error('x'), { code: SmartSpectraErrorCode.kNetworkError }));
+    expect(await starting).toMatchObject({ status: 'error' });
+    await stopping;
+    expect(h.last()).toMatchObject({ lifecycle: 'idle', failure: null });
+  });
+
+  it('refuses to change the key while sensing is running', async () => {
+    const h = await running();
+    expect(h.service.setApiKey('another-key-456')).toMatchObject({ status: 'error' });
+    expect(h.last().readiness).not.toBeNull();
+  });
 });

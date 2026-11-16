@@ -7,7 +7,7 @@ This describes what the current build does. Where something has not been verifie
 - Nothing touches the camera at launch. Headroom works fully without a camera, a Presage key, or Ollama.
 - Sensing starts only after all of: the in-app consent checkbox ("I choose to let Headroom use my camera for pulse readings during this session"), a Presage key entered for the session, macOS camera permission, a readiness check, and **Start sensing**. macOS permission alone is not treated as consent.
 - The readiness check itself uses the camera for up to about 40 seconds; it runs only after consent.
-- A **Stop sensing** button is always visible in the top bar while the camera is in use. Unchecking consent also stops sensing.
+- A **Stop sensing** button is always visible in the top bar while the camera is in use. Unchecking consent also stops sensing. Exception: the SDK 3.5.0 readiness check cannot be cancelled once started, so a stop requested during it takes effect when the check ends (up to about 40 seconds); the top bar shows "Stopping sensing" until then.
 - Capture stops on errors, low frame rate, sleep, window close, quit, or key removal, and never restarts by itself.
 - Automatic layout changes need a second, separate opt-in each session, and are disabled in this build until the signal gates are validated on a target Mac.
 

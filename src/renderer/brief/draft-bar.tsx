@@ -64,10 +64,10 @@ export function DraftBar({
       <details className="draft-options" ref={options}>
         <summary>Draft options</summary>
         <div className="toolbar">
-          <button type="button" onClick={brief.startNew}>
+          <button type="button" onClick={() => void brief.startNew().then(setProblem)}>
             New blank brief
           </button>
-          <button type="button" onClick={brief.loadSample}>
+          <button type="button" onClick={() => void brief.loadSample().then(setProblem)}>
             Start from sample
           </button>
           <label className="inline-label">
