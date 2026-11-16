@@ -93,7 +93,9 @@ export function LearningWorkspace(props: LearningWorkspaceProps) {
       </div>
       <nav className="reading-position" aria-label="Reading position">
         <p aria-live="polite">
-          {label(targets[index] ?? CHECK_TARGET)} · {index + 1} of {targets.length}
+          {position === CHECK_TARGET
+            ? `Comprehension check, after section ${String(document.blocks.length)}`
+            : `${label(targets[index] ?? CHECK_TARGET)} of ${String(document.blocks.length)}`}
         </p>
         <label className="inline-label">
           Go to
@@ -126,8 +128,8 @@ export function LearningWorkspace(props: LearningWorkspaceProps) {
             aiError={learning.aiError?.blockId === block.id ? learning.aiError.message : null}
             canExplain={status === null && model !== null}
             busy={learning.pending !== null}
-            onFocusBlock={() => {
-              if (position !== block.id) learning.setPosition(block.id);
+            onSelect={() => {
+              learning.setPosition(block.id);
             }}
             onAnnotate={(text) => {
               learning.annotate(block.id, text);

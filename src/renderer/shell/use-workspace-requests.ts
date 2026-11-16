@@ -22,7 +22,7 @@ export function useWorkspaceRequests(
   briefStep: string,
   learning: LearningControls,
 ): void {
-  const { add, setContext } = queue;
+  const { add, setContext, consumeExplanation } = queue;
   const briefContext = briefContextVersion(brief);
   const errorCount = Object.keys(brief.errors).length;
   const learningDocument = learning.document;
@@ -64,6 +64,10 @@ export function useWorkspaceRequests(
       target: REVIEW_STEP,
     });
   }, [add, briefContext, errorCount, brief.draft.complete, briefStep]);
+
+  useEffect(() => {
+    if (workspace === 'learning') consumeExplanation(learning.position);
+  }, [consumeExplanation, workspace, learning.position, learning.explanations]);
 
   const lastBlock = learningDocument.blocks.at(-1)?.id;
   useEffect(() => {

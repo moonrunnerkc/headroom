@@ -38,11 +38,21 @@ export function useRequestQueue(recorder: EvidenceRecorder) {
     [recorder],
   );
 
+  /** An explanation-ready notice is consumed once the user is viewing that section. */
+  const consumeExplanation = useCallback((target: string) => {
+    setQueue((current) => {
+      const next = current.filter(
+        (item) => !(item.kind === 'explanation-ready' && item.target === target),
+      );
+      return next.length === current.length ? current : next;
+    });
+  }, []);
+
   const setContext = useCallback((workspace: WorkspaceId, contextVersion: string) => {
     setQueue((current) => invalidateContext(current, workspace, contextVersion));
   }, []);
 
-  return { queue, add, remove, setContext };
+  return { queue, add, remove, consumeExplanation, setContext };
 }
 
 export type QueueControls = ReturnType<typeof useRequestQueue>;

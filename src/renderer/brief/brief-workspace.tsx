@@ -71,7 +71,7 @@ export function BriefWorkspace({
           Local document preparation. Headroom never submits this brief to anyone.
         </p>
       </header>
-      <DraftBar brief={brief} />
+      <DraftBar brief={brief} compact={focused} />
       <nav className="steps" aria-label="Brief steps">
         <p className="progress" aria-live="polite">
           {done} of {total} fields complete{brief.draft.complete ? ' · marked complete' : ''}

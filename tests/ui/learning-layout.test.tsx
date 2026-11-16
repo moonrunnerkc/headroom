@@ -60,22 +60,22 @@ describe('learning layouts', () => {
   it('preserves notes, answers, and reading position across layout changes', async () => {
     const user = userEvent.setup();
     render(<Harness />);
-    const notes = screen.getAllByLabelText('Your note on this section');
-    const secondNote = notes[1];
-    if (secondNote === undefined) throw new Error('lesson should have several sections');
+    await user.click(screen.getByRole('button', { name: 'Work with section 2' }));
+    const secondNote = document.getElementById('block-b002-note');
+    if (!(secondNote instanceof HTMLTextAreaElement)) throw new Error('missing note field');
     await user.type(secondNote, 'max-age is in seconds');
     act(() => {
       setLayoutFromTest('focused');
     });
     expect(learningFromTest?.position).toBe('b002');
     expect(visibleBlocks()[0]?.querySelector('textarea')).toBe(secondNote);
-    expect((secondNote as HTMLTextAreaElement).value).toBe('max-age is in seconds');
+    expect(secondNote.value).toBe('max-age is in seconds');
     await user.click(screen.getByRole('button', { name: /^Next: Section 3/ }));
     act(() => {
       setLayoutFromTest('standard');
     });
     expect(learningFromTest?.position).toBe('b003');
-    expect((secondNote as HTMLTextAreaElement).value).toBe('max-age is in seconds');
+    expect(secondNote.value).toBe('max-age is in seconds');
   });
 
   it('keeps reading and notes available and explains why AI cannot run', () => {
@@ -84,7 +84,7 @@ describe('learning layouts', () => {
     for (const button of screen.getAllByRole('button', { name: 'Explain this section' })) {
       expect((button as HTMLButtonElement).disabled).toBe(true);
     }
-    expect(screen.getAllByLabelText('Your note on this section')[0]).toBeTruthy();
+    expect(document.getElementById('block-b001-note')).not.toBeNull();
   });
 
   it('renders hostile imported text as inert characters', () => {

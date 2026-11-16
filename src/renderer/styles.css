@@ -89,6 +89,12 @@ button.primary {
   font-weight: 600;
 }
 
+.note-preview {
+  border-left: 3px solid var(--border);
+  padding-left: 0.5rem;
+  margin: 0.5rem 0;
+}
+
 button.danger,
 button.stop {
   border-color: var(--danger);
@@ -112,12 +118,12 @@ button.link {
   text-align: left;
 }
 
+/* Pressed state changes color only, never weight, so the strip never reflows. */
 button[aria-pressed='true'],
 button[aria-current='step'] {
   background: var(--accent);
   color: var(--accent-text);
   border-color: var(--accent);
-  font-weight: 600;
 }
 
 :focus-visible {
@@ -227,9 +233,12 @@ input[type='password'] {
   gap: 0.25rem;
 }
 
+.status-strip select {
+  max-width: 14rem;
+}
+
 .sensing-chip[data-active='true'] {
   border-color: var(--accent);
-  font-weight: 600;
 }
 
 .adaptation-banner {
