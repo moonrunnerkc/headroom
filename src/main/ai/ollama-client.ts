@@ -2,7 +2,7 @@ import { z } from 'zod';
 import type { LocalModel } from '../../shared/ai-types';
 
 /** Fixed loopback endpoint. OLLAMA_HOST and other remote hosts are deliberately not honored. */
-export const OLLAMA_ORIGIN = 'http://127.0.0.1:11434';
+const OLLAMA_ORIGIN = 'http://127.0.0.1:11434';
 const MAX_RESPONSE_BYTES = 512_000;
 
 export type FetchLike = (url: string, init: RequestInit) => Promise<Response>;

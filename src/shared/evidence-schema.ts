@@ -7,7 +7,7 @@ import { z } from 'zod';
  */
 const token = z.string().regex(/^[a-z0-9-]{1,48}$/);
 
-export const evidenceEventSchema = z.strictObject({
+const evidenceEventSchema = z.strictObject({
   elapsedMs: z.number().int().nonnegative(),
   kind: token,
   detail: token.optional(),
@@ -33,7 +33,6 @@ export const evidenceDocumentSchema = z.strictObject({
     aiMedianDurationMs: z.number().nonnegative().nullable(),
     sensingPackets: z.number().int().nonnegative(),
     sensingMedianPacketIntervalMs: z.number().nonnegative().nullable(),
-    rendererHeapUsedMb: z.number().nonnegative().nullable(),
   }),
 });
 export type EvidenceDocument = z.infer<typeof evidenceDocumentSchema>;

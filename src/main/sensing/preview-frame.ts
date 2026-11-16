@@ -1,7 +1,7 @@
 import { PixelFormat } from '@smartspectra/node-sdk';
 import type { RawFrame } from './presage-session';
 
-export const PREVIEW_WIDTH = 320;
+const PREVIEW_WIDTH = 320;
 
 const CHANNEL_LAYOUT = new Map<number, { bytes: number; red: number; blue: number }>([
   [PixelFormat.kRGB, { bytes: 3, red: 0, blue: 2 }],

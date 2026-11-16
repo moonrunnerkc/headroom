@@ -1,4 +1,4 @@
-import { ipcMain, type BrowserWindow, type IpcMainInvokeEvent } from 'electron';
+import { ipcMain, type BrowserWindow } from 'electron';
 import { z } from 'zod';
 import { explainRequestSchema } from '../shared/ai-types';
 import { draftIdSchema, preferencesSchema, storedDraftSchema } from '../shared/draft-schema';
@@ -25,23 +25,26 @@ export interface IpcServices {
 
 type Channel = (typeof INVOKE_CHANNELS)[keyof typeof INVOKE_CHANNELS];
 
+interface InvocationSource {
+  readonly sender: unknown;
+  readonly senderFrame: { readonly url: string; readonly parent: unknown } | null;
+}
+
 /** Accepts a call only from the main frame of Headroom's own window, with a payload matching the schema. */
 export function acceptInvocation<A>(
-  event: Pick<IpcMainInvokeEvent, 'sender' | 'senderFrame'>,
-  window: BrowserWindow | null,
+  event: InvocationSource,
+  window: { readonly webContents: unknown } | null,
   schema: z.ZodType<A>,
   raw: unknown[],
 ): A {
   const frame = event.senderFrame;
-  if (
-    window === null ||
-    event.sender !== window.webContents ||
-    frame === null ||
-    frame.parent !== null ||
-    !isTrustedRendererUrl(frame.url)
-  ) {
-    throw new Error('Rejected a request from an untrusted sender.');
-  }
+  const trusted =
+    window !== null &&
+    event.sender === window.webContents &&
+    frame !== null &&
+    frame.parent === null &&
+    isTrustedRendererUrl(frame.url);
+  if (!trusted) throw new Error('Rejected a request from an untrusted sender.');
   const parsed = schema.safeParse(raw);
   if (!parsed.success) throw new Error('Rejected a malformed request.');
   return parsed.data;

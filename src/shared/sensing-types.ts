@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const sensingFailureKinds = [
+const sensingFailureKinds = [
   'permission-denied',
   'permission-restricted',
   'camera-unavailable',
@@ -97,7 +97,7 @@ export const sensingEventSchema = z.discriminatedUnion('kind', [
 
 export type SensingEvent = z.infer<typeof sensingEventSchema>;
 
-export const cameraInfoSchema = z.strictObject({ id: z.string(), name: z.string() });
+const cameraInfoSchema = z.strictObject({ id: z.string(), name: z.string() });
 export type CameraInfo = z.infer<typeof cameraInfoSchema>;
 
 export const cameraListSchema = z.discriminatedUnion('status', [

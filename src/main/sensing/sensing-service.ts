@@ -6,16 +6,11 @@ import type {
   SensingFailureKind,
   SensingSnapshot,
 } from '../../shared/sensing-types';
-import {
-  IDLE_MEASUREMENT_VIEW,
-  createMeasurementSession,
-  type MeasurementSession,
-} from './measurement-session';
+import { IDLE_MEASUREMENT_VIEW, createMeasurementSession } from './measurement-session';
 import type { PresageCallbacks, PresageSession, RawFrame } from './presage-session';
-import { mapSdkError, processingStatusName, type MappedFailure } from './sdk-codes';
+import type { MappedFailure } from './sdk-codes';
+import { TICK_MS, routeSessionCallbacks, type ActiveSession } from './session-callbacks';
 import {
-  PIPELINE_ERROR,
-  UNEXPECTED_INSIGHT,
   failureFromThrown,
   interpretReadiness,
   permissionProblem,
@@ -41,20 +36,6 @@ export interface SensingDeps {
 
 type CommandResult = { status: 'ok' } | { status: 'error'; message: string };
 
-interface ActiveSession {
-  readonly id: string;
-  readonly cameraId: string;
-  session: PresageSession | null;
-  readonly measurement: MeasurementSession;
-  processingStatus: SensingSnapshot['processingStatus'];
-  insightEvents: number;
-  previewEnabled: boolean;
-  lastPreviewAtMs: number;
-  stopTimer: () => void;
-}
-
-/** UI updates and the silence watchdog both run at 4 Hz. */
-const TICK_MS = 250;
 const NOT_RUNNING: CommandResult = { status: 'error', message: 'Sensing is not running.' };
 
 export function createSensingService(deps: SensingDeps) {
@@ -68,6 +49,8 @@ export function createSensingService(deps: SensingDeps) {
   let pendingWork: Promise<unknown> = Promise.resolve();
   let operation = 0;
   let stopping: Promise<void> | null = null;
+  // Read through a function so checks after an await see the current value, not a narrowed one.
+  const activeSession = (): ActiveSession | null => active;
 
   function snapshot(): SensingSnapshot {
     const now = deps.now();
@@ -140,46 +123,10 @@ export function createSensingService(deps: SensingDeps) {
     return { status: 'ok' };
   }
 
-  /** Callbacks for one session; anything arriving after that session ended is ignored. */
-  function sessionCallbacks(id: string): PresageCallbacks {
-    const current = () => (active?.id === id ? active : null);
-    const endWith = (ending: MappedFailure, reason: string) => {
-      if (current() === null) return;
-      failure ??= ending;
-      void stop(reason);
-    };
-    return {
-      onStatus: (status) => {
-        const session = current();
-        if (session === null) return;
-        session.processingStatus = processingStatusName(status);
-        if (session.processingStatus === 'running')
-          session.measurement.processingStarted(deps.now());
-        if (session.processingStatus === 'error') endWith(PIPELINE_ERROR, 'pipeline-error');
-        if (session.processingStatus === 'idle' && lifecycle === 'running') {
-          endWith(PIPELINE_ERROR, 'pipeline-ended');
-        }
-      },
-      onValidation: (code, hint) => current()?.measurement.validation(code, hint, deps.now()),
-      onMetrics: (buffer) => current()?.measurement.packet(buffer, deps.now()),
-      onError: (code) => {
-        endWith(mapSdkError(code), 'sdk-error');
-      },
-      onInsight: () => {
-        const session = current();
-        if (session !== null) session.insightEvents += 1;
-        endWith(UNEXPECTED_INSIGHT, 'unexpected-insight');
-      },
-      onFrame: (frame) => {
-        const session = current();
-        const now = deps.now();
-        if (session?.previewEnabled !== true || now - session.lastPreviewAtMs < TICK_MS) return;
-        session.lastPreviewAtMs = now;
-        const encoded = deps.encodePreview(frame);
-        if (encoded !== null) deps.sendPreview({ sessionId: id, ...encoded });
-      },
-    };
-  }
+  const endSession = (ending: MappedFailure, reason: string) => {
+    failure ??= ending;
+    void stop(reason);
+  };
 
   async function start(cameraId: string): Promise<CommandResult> {
     const problem = preconditions(cameraId);
@@ -202,7 +149,9 @@ export function createSensingService(deps: SensingDeps) {
       id,
       cameraId,
       session: null,
-      measurement: createMeasurementSession(id, deps.emit),
+      measurement: createMeasurementSession(id, (event) => {
+        deps.emit(event);
+      }),
       processingStatus: 'uninitialized',
       insightEvents: 0,
       previewEnabled: false,
@@ -214,21 +163,32 @@ export function createSensingService(deps: SensingDeps) {
     };
     publish();
     try {
-      const opened = deps.openSession(apiKey, cameraId, sessionCallbacks(id));
+      const opened = deps.openSession(
+        apiKey,
+        cameraId,
+        routeSessionCallbacks(id, {
+          current: () => (active?.id === id ? active : null),
+          running: () => lifecycle === 'running',
+          end: endSession,
+          deps,
+        }),
+      );
       pendingWork = opened;
       const session = await opened;
-      if (token !== operation || active?.id !== id) {
+      // `active` may have been replaced or cleared by stop() while the SDK was opening.
+      const current = activeSession();
+      if (token !== operation || current?.id !== id) {
         await session.shutdown();
         return { status: 'error', message: 'Sensing was stopped before it started.' };
       }
-      active.session = session;
+      current.session = session;
       session.start();
       lifecycle = 'running';
       publish();
       return { status: 'ok' };
     } catch (error) {
       failure = failureFromThrown(error, 'The Presage SDK could not start.');
-      if (active?.id === id) await stop('start-failed');
+      if (activeSession()?.id === id) await stop('start-failed');
       return { status: 'error', message: failure.message };
     }
   }

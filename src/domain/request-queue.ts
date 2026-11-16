@@ -1,6 +1,6 @@
 export type WorkspaceId = 'brief' | 'learning';
 
-export type QueueItemKind = 'contextual-help' | 'suggestion' | 'explanation-ready';
+type QueueItemKind = 'contextual-help' | 'suggestion' | 'explanation-ready';
 
 /**
  * Optional, postponable content only. Errors, permission prompts, save
@@ -58,10 +58,6 @@ export function enqueue(queue: RequestQueue, item: QueueItem): RequestQueue {
 
 export function dismiss(queue: RequestQueue, id: string): RequestQueue {
   return queue.filter((item) => item.id !== id);
-}
-
-export function dismissByKey(queue: RequestQueue, dedupeKey: string): RequestQueue {
-  return queue.filter((item) => item.dedupeKey !== dedupeKey);
 }
 
 /** Drop items whose task context changed (new draft, new document, completed task). */

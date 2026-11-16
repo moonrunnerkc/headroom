@@ -1,5 +1,6 @@
 // @ts-check
 import js from '@eslint/js';
+import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import reactHooks from 'eslint-plugin-react-hooks';
 import unicorn from 'eslint-plugin-unicorn';
@@ -7,7 +8,7 @@ import unicorn from 'eslint-plugin-unicorn';
 const toolConfigFiles = ['*.config.{js,ts}', 'electron.vite.config.ts'];
 
 // A flat config array is the tool's required default export.
-export default tseslint.config(
+export default defineConfig(
   {
     ignores: [
       'node_modules/',
@@ -21,13 +22,11 @@ export default tseslint.config(
   },
   { linterOptions: { noInlineConfig: true, reportUnusedDisableDirectives: 'error' } },
   js.configs.recommended,
-  ...tseslint.configs.strictTypeChecked,
+  tseslint.configs.strictTypeChecked,
   {
     languageOptions: {
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ['eslint.config.js'],
-        },
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -62,14 +61,8 @@ export default tseslint.config(
       eqeqeq: 'error',
     },
   },
-  {
-    files: ['src/renderer/**/*.{ts,tsx}'],
-    plugins: { 'react-hooks': reactHooks },
-    rules: {
-      ...reactHooks.configs.recommended.rules,
-      'no-console': 'error',
-    },
-  },
+  { ...reactHooks.configs.flat.recommended, files: ['src/renderer/**/*.{ts,tsx}'] },
+  { files: ['src/renderer/**/*.{ts,tsx}'], rules: { 'no-console': 'error' } },
   {
     files: ['src/domain/**/*.ts', 'src/shared/**/*.ts'],
     rules: {

@@ -1,8 +1,8 @@
 export type Layout = 'standard' | 'focused';
 export type PolicyMode = 'manual' | 'suggest' | 'automatic';
-export type LayoutCause = 'user' | 'accepted-suggestion' | 'automatic';
+type LayoutCause = 'user' | 'accepted-suggestion' | 'automatic';
 
-export type PendingSensorChange =
+type PendingSensorChange =
   | { readonly kind: 'suggestion'; readonly triggerId: string; readonly sinceMs: number }
   | {
       readonly kind: 'awaiting-safe-boundary';
@@ -58,7 +58,7 @@ export type PresentationEvent =
   | { readonly kind: 'sensor-muted'; readonly muted: boolean }
   | { readonly kind: 'trigger-ignored'; readonly reason: TriggerIgnoredReason };
 
-export type TriggerIgnoredReason =
+type TriggerIgnoredReason =
   'manual-mode' | 'muted' | 'already-focused' | 'pending-exists' | 'signal-not-usable';
 
 export interface PresentationStep {

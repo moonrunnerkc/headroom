@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { open, readFile, rename, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-export const MAX_STORED_FILE_BYTES = 1_000_000;
+const MAX_STORED_FILE_BYTES = 1_000_000;
 
 /**
  * Write via a sibling temporary file, fsync, then rename, so a crash leaves
@@ -56,23 +56,21 @@ export async function readJsonFile(path: string): Promise<ReadJsonResult> {
   }
 }
 
-export function isNodeError(error: unknown): error is NodeJS.ErrnoException {
+function isNodeError(error: unknown): error is NodeJS.ErrnoException {
   return error instanceof Error && 'code' in error;
 }
 
+const FILE_ERROR_TEXT: Readonly<Record<string, string>> = {
+  ENOSPC: 'The disk is full.',
+  EACCES: 'Headroom does not have permission to write there.',
+  EPERM: 'Headroom does not have permission to write there.',
+  EROFS: 'The location is read-only.',
+};
+
 export function describeFileError(error: unknown): string {
   if (isNodeError(error)) {
-    switch (error.code) {
-      case 'ENOSPC':
-        return 'The disk is full.';
-      case 'EACCES':
-      case 'EPERM':
-        return 'Headroom does not have permission to write there.';
-      case 'EROFS':
-        return 'The location is read-only.';
-      default:
-        return `The file operation failed (${error.code ?? 'unknown error'}).`;
-    }
+    const code = error.code ?? 'unknown error';
+    return FILE_ERROR_TEXT[code] ?? `The file operation failed (${code}).`;
   }
   return error instanceof Error ? error.message : 'The file operation failed.';
 }

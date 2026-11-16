@@ -14,7 +14,7 @@ export type RuleStatus =
       readonly thresholdBpm: number;
     };
 
-export function qualifyingIncrease(baselineBpm: number, config: PulsePolicyConfig): number {
+function qualifyingIncrease(baselineBpm: number, config: PulsePolicyConfig): number {
   return Math.max(config.minIncreaseBpm, baselineBpm * config.minIncreaseFraction);
 }
 

@@ -13,7 +13,6 @@ const productionPolicy = [
   "object-src 'none'",
   "base-uri 'none'",
   "form-action 'none'",
-  "frame-ancestors 'none'",
 ].join('; ');
 
 // Vite's dev server needs inline module preambles and a websocket; the packaged

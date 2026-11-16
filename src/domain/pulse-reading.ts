@@ -11,7 +11,7 @@ export interface PulseCandidate {
   readonly receivedAtMs: number;
 }
 
-export interface UsablePulseReading extends PulseCandidate {
+interface UsablePulseReading extends PulseCandidate {
   readonly unit: 'bpm';
   readonly provenance: 'presage-smartspectra-live';
 }

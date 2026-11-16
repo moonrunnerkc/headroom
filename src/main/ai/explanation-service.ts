@@ -8,9 +8,9 @@ import {
 } from '../../shared/ai-types';
 import { OllamaError, type OllamaClient } from './ollama-client';
 
-export const PROMPT_VERSION = 'explain-v1';
-export const GENERATION_TIMEOUT_MS = 90_000;
-export const MAX_OUTPUT_TOKENS = 1_024;
+const PROMPT_VERSION = 'explain-v1';
+const GENERATION_TIMEOUT_MS = 90_000;
+const MAX_OUTPUT_TOKENS = 1_024;
 const CACHE_LIMIT = 50;
 
 const SYSTEM_PROMPT = [

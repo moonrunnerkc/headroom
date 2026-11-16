@@ -8,7 +8,7 @@ import {
   type ReadingAssessment,
 } from './pulse-reading';
 
-export type SignalQuality = 'warming-up' | 'awaiting-data' | 'usable' | 'unusable' | 'stale';
+type SignalQuality = 'warming-up' | 'awaiting-data' | 'usable' | 'unusable' | 'stale';
 
 export interface SignalPolicyState {
   readonly sessionId: string;

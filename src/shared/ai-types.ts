@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { SOURCE_CHARACTER_LIMIT } from '../domain/source-blocks';
 
-export const EXPLANATION_MAX_CHARACTERS = 1_500;
+const EXPLANATION_MAX_CHARACTERS = 1_500;
 export const QUESTION_MAX_CHARACTERS = 500;
-export const MAX_BLOCKS_PER_REQUEST = 5;
+const MAX_BLOCKS_PER_REQUEST = 5;
 
-export const localModelSchema = z.strictObject({
+const localModelSchema = z.strictObject({
   name: z.string(),
   family: z.string(),
   parameterSize: z.string(),
@@ -39,7 +39,7 @@ export const explainRequestSchema = z
   );
 export type ExplainRequest = z.infer<typeof explainRequestSchema>;
 
-export const explainErrorCodes = [
+const explainErrorCodes = [
   'runtime-unavailable',
   'model-not-local',
   'busy',

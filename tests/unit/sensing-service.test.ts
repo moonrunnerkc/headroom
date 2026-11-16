@@ -2,37 +2,46 @@ import { describe, expect, it, vi } from 'vitest';
 import { SmartSpectraErrorCode, ProcessingStatus, ValidationCode } from '@smartspectra/node-sdk';
 import { createSensingService, type SensingDeps } from '../../src/main/sensing/sensing-service';
 import type { PresageCallbacks } from '../../src/main/sensing/presage-session';
-import type { SensingEvent, SensingSnapshot } from '../../src/shared/sensing-types';
+import type { SensingEvent } from '../../src/shared/sensing-types';
+
+interface FakeSession {
+  start: ReturnType<typeof vi.fn<() => void>>;
+  shutdown: ReturnType<typeof vi.fn<() => Promise<void>>>;
+}
+
+function fakeSession(): FakeSession {
+  return { start: vi.fn<() => void>(), shutdown: vi.fn(() => Promise.resolve()) };
+}
 
 /** A fake SDK boundary: no camera, no network, no Presage service. */
 function harness(overrides: Partial<SensingDeps> = {}) {
-  let clock = 0;
   let sessionCounter = 0;
   const callbacks: PresageCallbacks[] = [];
-  const sessions: { start: ReturnType<typeof vi.fn>; shutdown: ReturnType<typeof vi.fn> }[] = [];
-  const snapshots: SensingSnapshot[] = [];
+  const sessions: FakeSession[] = [];
   const events: SensingEvent[] = [];
-  const timers = { active: 0, started: 0, tick: () => undefined as void };
+  const timers = { active: 0 };
+  const checkReadiness = vi.fn(() => Promise.resolve({ verdict: 'ready' as const, reason: 'ok' }));
+  const openSession = vi.fn((_key: string, _camera: string, cb: PresageCallbacks) => {
+    callbacks.push(cb);
+    const session = fakeSession();
+    sessions.push(session);
+    return Promise.resolve(session);
+  });
   const deps: SensingDeps = {
-    now: () => clock,
-    newSessionId: () => `session-${++sessionCounter}`,
+    now: () => 0,
+    newSessionId: () => `session-${String(++sessionCounter)}`,
     sdkVersion: 'test',
     cameraPermission: () => 'granted',
-    checkReadiness: vi.fn(() => Promise.resolve({ verdict: 'ready' as const, reason: 'ok' })),
-    openSession: vi.fn((_key: string, _camera: string, cb: PresageCallbacks) => {
-      callbacks.push(cb);
-      const session = { start: vi.fn(), shutdown: vi.fn(() => Promise.resolve()) };
-      sessions.push(session);
-      return Promise.resolve(session);
-    }),
+    checkReadiness,
+    openSession,
     encodePreview: () => null,
-    publish: (snapshot) => snapshots.push(snapshot),
-    emit: (event) => events.push(event),
-    sendPreview: vi.fn(),
-    startTimer: (callback) => {
+    publish: () => undefined,
+    emit: (event) => {
+      events.push(event);
+    },
+    sendPreview: () => undefined,
+    startTimer: () => {
       timers.active += 1;
-      timers.started += 1;
-      timers.tick = callback;
       return () => {
         timers.active -= 1;
       };
@@ -42,15 +51,13 @@ function harness(overrides: Partial<SensingDeps> = {}) {
   const service = createSensingService(deps);
   return {
     service,
-    deps,
+    checkReadiness,
+    openSession,
     callbacks,
     sessions,
     events,
     timers,
     last: () => service.snapshot(),
-    advance: (ms: number) => {
-      clock += ms;
-    },
   };
 }
 
@@ -67,7 +74,7 @@ describe('consent and prerequisites', () => {
     const h = harness();
     expect(await h.service.checkReadiness('cam-1')).toMatchObject({ status: 'error' });
     expect(h.last().failure?.kind).toBe('no-api-key');
-    expect(h.deps.checkReadiness).not.toHaveBeenCalled();
+    expect(h.checkReadiness).not.toHaveBeenCalled();
   });
 
   it('refuses when macOS camera permission is denied', async () => {
@@ -75,7 +82,7 @@ describe('consent and prerequisites', () => {
     h.service.setApiKey('test-key-123');
     await h.service.checkReadiness('cam-1');
     expect(h.last().failure?.kind).toBe('permission-denied');
-    expect(h.deps.checkReadiness).not.toHaveBeenCalled();
+    expect(h.checkReadiness).not.toHaveBeenCalled();
   });
 
   it('requires a passing readiness check for the same camera and key', async () => {
@@ -86,7 +93,7 @@ describe('consent and prerequisites', () => {
     expect(await h.service.start('cam-2')).toMatchObject({ status: 'error' });
     h.service.setApiKey('another-key-456');
     expect(await h.service.start('cam-1')).toMatchObject({ status: 'error' });
-    expect(h.deps.openSession).not.toHaveBeenCalled();
+    expect(h.openSession).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -149,33 +156,29 @@ describe('lifecycle and teardown', () => {
   it('an SDK error stops capture once and never restarts it', async () => {
     const h = await running();
     h.callbacks[0]?.onError(SmartSpectraErrorCode.kCreditExhausted);
-    await vi.waitFor(() => expect(h.last().lifecycle).toBe('idle'));
+    await vi.waitFor(() => {
+      expect(h.last().lifecycle).toBe('idle');
+    });
     expect(h.last().failure?.kind).toBe('credits-exhausted');
     expect(h.sessions[0]?.shutdown).toHaveBeenCalledTimes(1);
-    expect(h.deps.openSession).toHaveBeenCalledTimes(1);
+    expect(h.openSession).toHaveBeenCalledTimes(1);
   });
 
   it('rejects a repeated start while running', async () => {
     const h = await running();
     expect(await h.service.start('cam-1')).toMatchObject({ status: 'error' });
-    expect(h.deps.openSession).toHaveBeenCalledTimes(1);
+    expect(h.openSession).toHaveBeenCalledTimes(1);
   });
 
   it('a stop while the SDK is still opening shuts the late session down', async () => {
-    let resolveOpen: (value: { start: () => void; shutdown: () => Promise<void> }) => void = () =>
-      undefined;
-    const late = { start: vi.fn(), shutdown: vi.fn(() => Promise.resolve()) };
-    const h = harness({
-      openSession: () =>
-        new Promise((resolve) => {
-          resolveOpen = resolve;
-        }),
-    });
+    const late = fakeSession();
+    const opening = Promise.withResolvers<FakeSession>();
+    const h = harness({ openSession: () => opening.promise });
     h.service.setApiKey('test-key-123');
     await h.service.checkReadiness('cam-1');
     const starting = h.service.start('cam-1');
     const stopping = h.service.stop('user');
-    resolveOpen(late);
+    opening.resolve(late);
     expect(await starting).toMatchObject({ status: 'error' });
     await stopping;
     expect(late.start).not.toHaveBeenCalled();
@@ -184,18 +187,13 @@ describe('lifecycle and teardown', () => {
   });
 
   it('concurrent stops share one teardown and stay "stopping" until it finishes', async () => {
-    let finish: () => void = () => undefined;
+    const teardown = Promise.withResolvers<undefined>();
     const h = await running();
-    h.sessions[0]?.shutdown.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = resolve;
-        }),
-    );
+    h.sessions[0]?.shutdown.mockImplementation(() => teardown.promise);
     const first = h.service.stop('user');
     const second = h.service.stop('window-closed');
     expect(h.last().lifecycle).toBe('stopping');
-    finish();
+    teardown.resolve(undefined);
     await Promise.all([first, second]);
     expect(h.sessions[0]?.shutdown).toHaveBeenCalledTimes(1);
     expect(h.last().lifecycle).toBe('idle');
@@ -211,13 +209,15 @@ describe('lifecycle and teardown', () => {
       lifecycle: 'idle',
       failure: { kind: 'interrupted-by-sleep' },
     });
-    expect(h.deps.openSession).toHaveBeenCalledTimes(1);
+    expect(h.openSession).toHaveBeenCalledTimes(1);
   });
 
   it('an LLM insight packet is treated as a violation and stops capture', async () => {
     const h = await running();
     h.callbacks[0]?.onInsight();
-    await vi.waitFor(() => expect(h.last().lifecycle).toBe('idle'));
+    await vi.waitFor(() => {
+      expect(h.last().lifecycle).toBe('idle');
+    });
     expect(h.last().failure?.message).toMatch(/LLM insight/);
   });
 

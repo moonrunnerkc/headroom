@@ -2,9 +2,9 @@ import { join, normalize, relative, isAbsolute } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { BrowserWindow, app, net, protocol, session, shell, type WebContents } from 'electron';
 
-export const APP_SCHEME = 'app';
+const APP_SCHEME = 'app';
 const APP_HOST = 'headroom';
-export const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`;
+const APP_ORIGIN = `${APP_SCHEME}://${APP_HOST}`;
 
 /** Must run before the app is ready. */
 export function registerAppScheme(): void {

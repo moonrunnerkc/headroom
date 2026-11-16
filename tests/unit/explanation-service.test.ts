@@ -187,7 +187,9 @@ describe('explain', () => {
     vi.useFakeTimers();
     const hanging: Route = (_b, init) =>
       new Promise((_resolve, reject) => {
-        init.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+        init.signal?.addEventListener('abort', () => {
+          reject(new Error('aborted'));
+        });
       });
     const { svc } = service({ '/api/generate': hanging });
     const pending = svc.explain(request);

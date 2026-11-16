@@ -62,8 +62,7 @@ async function saveWithDialog(
     defaultPath: defaultName,
     filters: [filter],
   });
-  if (choice.canceled || choice.filePath === undefined || choice.filePath === '')
-    return { status: 'cancelled' };
+  if (choice.canceled || choice.filePath === '') return { status: 'cancelled' };
   try {
     await writeFileAtomic(choice.filePath, contents);
     return { status: 'saved', fileName: basename(choice.filePath) };

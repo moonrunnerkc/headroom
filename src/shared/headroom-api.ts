@@ -64,7 +64,7 @@ export const saveResultSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('saved'), savedAt: z.string() }),
   operationErrorSchema,
 ]);
-export type SaveResult = z.infer<typeof saveResultSchema>;
+type SaveResult = z.infer<typeof saveResultSchema>;
 
 export const fileWriteResultSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('saved'), fileName: z.string() }),
@@ -92,9 +92,9 @@ export const sensingCommandResultSchema = z.discriminatedUnion('status', [
   z.strictObject({ status: z.literal('ok') }),
   operationErrorSchema,
 ]);
-export type SensingCommandResult = z.infer<typeof sensingCommandResultSchema>;
+type SensingCommandResult = z.infer<typeof sensingCommandResultSchema>;
 
-export type Unsubscribe = () => void;
+type Unsubscribe = () => void;
 
 export interface HeadroomApi {
   appInfo(): Promise<AppInfo>;
