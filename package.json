@@ -20,7 +20,9 @@
     "test:e2e": "npm run build && playwright test",
     "package:mac": "npm run build && electron-builder --mac --arm64 --publish never",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm run test && npm run build",
-    "test:packaged": "playwright test --config playwright.packaged.config.ts"
+    "test:packaged": "playwright test --config playwright.packaged.config.ts",
+    "test:live-ai": "npm run build && playwright test --config playwright.live.config.ts ollama-live",
+    "test:live-sdk": "npm run build && playwright test --config playwright.live.config.ts presage-live"
   },
   "dependencies": {
     "@smartspectra/node-sdk": "3.5.0",

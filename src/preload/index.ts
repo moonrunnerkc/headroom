@@ -59,6 +59,7 @@ const api: HeadroomApi = {
   loadDraft: (id) => invoke(INVOKE_CHANNELS.draftsLoad, draftResult, id),
   saveDraft: (draft) => invoke(INVOKE_CHANNELS.draftsSave, saveResultSchema, draft),
   deleteDraft: (id) => invoke(INVOKE_CHANNELS.draftsDelete, sensingCommandResultSchema, id),
+  deleteLocalData: () => invoke(INVOKE_CHANNELS.deleteLocalData, sensingCommandResultSchema),
   loadPreferences: () => invoke(INVOKE_CHANNELS.preferencesLoad, preferencesResult),
   savePreferences: (preferences) =>
     invoke(INVOKE_CHANNELS.preferencesSave, saveResultSchema, preferences),

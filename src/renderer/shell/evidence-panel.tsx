@@ -7,7 +7,7 @@ export function EvidencePanel({ build }: { readonly build: () => EvidenceDocumen
   const [preview, setPreview] = useState<EvidenceDocument | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   return (
-    <section className="panel" aria-labelledby="evidence-heading">
+    <section aria-labelledby="evidence-heading">
       <h2 id="evidence-heading">Session evidence</h2>
       <p>
         The export contains elapsed-time events (layout, mode, suggestion, signal-quality, and queue

@@ -13,6 +13,7 @@ import { SensingPanel } from './sensing/sensing-panel';
 import { captureActive, useSensing } from './sensing/use-sensing';
 import { AdaptationBanner } from './shell/adaptation-banner';
 import { EvidencePanel } from './shell/evidence-panel';
+import { LocalData } from './shell/local-data';
 import { QueuePanel } from './shell/queue-panel';
 import { StatusStrip, type Panel } from './shell/status-strip';
 import { usePresentation } from './shell/use-presentation';
@@ -212,15 +213,18 @@ export function HeadroomApp({ preferences }: { readonly preferences: Preferences
               <QueuePanel queue={queue.queue} onOpen={openItem} onDismiss={dismissItem} />
             )}
             {panel === 'evidence' && (
-              <EvidencePanel
-                build={() =>
-                  recorder.build({
-                    appVersion,
-                    sensingPackets: sensing?.packetCount ?? 0,
-                    sensingMedianIntervalMs: sensing?.medianIntervalMs ?? null,
-                  })
-                }
-              />
+              <div className="panel">
+                <LocalData onDeleted={brief.forgetAll} />
+                <EvidencePanel
+                  build={() =>
+                    recorder.build({
+                      appVersion,
+                      sensingPackets: sensing?.packetCount ?? 0,
+                      sensingMedianIntervalMs: sensing?.medianIntervalMs ?? null,
+                    })
+                  }
+                />
+              </div>
             )}
           </aside>
         )}

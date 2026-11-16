@@ -98,6 +98,23 @@ describe('draft store', () => {
     expect(await store.list()).toEqual([]);
   });
 
+  it('deletes every draft and the preferences file on request', async () => {
+    const store = createDraftStore(root);
+    await store.save(draft());
+    await store.savePreferences({
+      formatVersion: 1,
+      layout: 'focused',
+      mode: 'suggest',
+      aiModel: null,
+    });
+    expect(await store.removeAll()).toEqual({ status: 'ok' });
+    expect(await store.list()).toEqual([]);
+    expect(await store.loadPreferences()).toMatchObject({
+      status: 'ok',
+      preferences: { layout: 'standard' },
+    });
+  });
+
   it('returns defaults when preferences are missing and an error when they are corrupt', async () => {
     const store = createDraftStore(root);
     expect(await store.loadPreferences()).toMatchObject({

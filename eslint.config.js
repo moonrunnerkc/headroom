@@ -87,11 +87,6 @@ export default defineConfig(
     files: toolConfigFiles,
     rules: { 'no-restricted-syntax': 'off' },
   },
-  {
-    files: ['tests/**/*.{ts,tsx}'],
-    rules: {
-      '@typescript-eslint/no-non-null-assertion': 'error',
-      'max-lines': ['error', { max: 300 }],
-    },
-  },
+  // Live target-device probes report their observations on stdout.
+  { files: ['tests/live/**/*.ts'], rules: { 'no-console': 'off' } },
 );

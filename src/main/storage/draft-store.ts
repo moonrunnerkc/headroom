@@ -99,6 +99,17 @@ export function createDraftStore(root: string) {
     }
   }
 
+  /** Delete every draft file and the preferences file Headroom wrote. Exported copies are untouched. */
+  async function removeAll(): Promise<{ status: 'ok' } | { status: 'error'; message: string }> {
+    try {
+      await rm(draftsDir, { recursive: true, force: true });
+      await rm(preferencesPath, { force: true });
+      return { status: 'ok' };
+    } catch (error) {
+      return { status: 'error', message: describeFileError(error) };
+    }
+  }
+
   async function loadPreferences(): Promise<
     { status: 'ok'; preferences: Preferences } | { status: 'unreadable'; message: string }
   > {
@@ -124,7 +135,7 @@ export function createDraftStore(root: string) {
     }
   }
 
-  return { list, load, save, remove, loadPreferences, savePreferences };
+  return { list, load, save, remove, removeAll, loadPreferences, savePreferences };
 }
 
 export type DraftStore = ReturnType<typeof createDraftStore>;

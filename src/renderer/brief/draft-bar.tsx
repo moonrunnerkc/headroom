@@ -41,6 +41,10 @@ export function DraftBar({
         {saveLabel(brief.save)}
         {brief.draft.sample && <span className="tag">Sample content</span>}
       </p>
+      <p className="muted">
+        Drafts save automatically as unencrypted files in Headroom&apos;s app data folder on this
+        Mac.
+      </p>
       {brief.save.kind === 'failed' && (
         <div className="alert" role="alert">
           <p>

@@ -145,6 +145,11 @@ export function useBriefDraft(recorder: EvidenceRecorder) {
     startNew: () => {
       replace(newDraft(EMPTY_BRIEF, false), 'blank');
     },
+    /** After local data deletion, drop the in-memory draft too so autosave cannot recreate it. */
+    forgetAll: () => {
+      replace(newDraft(EMPTY_BRIEF, false), 'blank');
+      void refreshList();
+    },
     loadSample: () => {
       replace(newDraft(SAMPLE_BRIEF, true), 'sample');
     },

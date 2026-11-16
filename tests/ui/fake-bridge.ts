@@ -18,6 +18,7 @@ export function installFakeBridge(overrides: Partial<HeadroomApi> = {}): Headroo
       Promise.resolve({ status: 'saved' as const, savedAt: new Date(0).toISOString() }),
     ),
     deleteDraft: vi.fn(() => Promise.resolve({ status: 'ok' as const })),
+    deleteLocalData: vi.fn(() => Promise.resolve({ status: 'ok' as const })),
     loadPreferences: vi.fn(() =>
       Promise.resolve({ status: 'unreadable' as const, message: 'unused' }),
     ),

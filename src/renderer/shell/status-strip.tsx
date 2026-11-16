@@ -119,7 +119,7 @@ export function StatusStrip(props: StatusStripProps) {
             togglePanel('evidence');
           }}
         >
-          Evidence
+          Data
         </button>
       </div>
     </header>

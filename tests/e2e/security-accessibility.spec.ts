@@ -25,7 +25,7 @@ test('the renderer is isolated: no Node, no navigation, no inline script, only t
     'undefined',
   );
   const bridgeKeys = await page.evaluate(() => Object.keys(window.headroom ?? {}).length);
-  expect(bridgeKeys).toBe(25);
+  expect(bridgeKeys).toBe(26);
   const startUrl = page.url();
   expect(startUrl.startsWith('app://headroom/')).toBe(true);
   await page.evaluate(() => {

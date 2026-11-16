@@ -81,6 +81,7 @@ export function registerIpcHandlers(services: IpcServices): () => void {
   handle(INVOKE_CHANNELS.draftsDelete, z.tuple([draftIdSchema]), (_w, id) =>
     services.drafts.remove(id),
   );
+  handle(INVOKE_CHANNELS.deleteLocalData, none, () => services.drafts.removeAll());
   handle(INVOKE_CHANNELS.preferencesLoad, none, () => services.drafts.loadPreferences());
   handle(INVOKE_CHANNELS.preferencesSave, z.tuple([preferencesSchema]), (_w, prefs) =>
     services.drafts.savePreferences(prefs),

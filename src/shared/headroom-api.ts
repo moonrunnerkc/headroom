@@ -22,6 +22,7 @@ export const INVOKE_CHANNELS = {
   draftsLoad: 'drafts:load',
   draftsSave: 'drafts:save',
   draftsDelete: 'drafts:delete',
+  deleteLocalData: 'data:delete-all',
   preferencesLoad: 'preferences:load',
   preferencesSave: 'preferences:save',
   exportBrief: 'files:export-brief',
@@ -106,6 +107,7 @@ export interface HeadroomApi {
   ): Promise<{ status: 'ok'; draft: StoredDraft } | { status: 'error'; message: string }>;
   saveDraft(draft: StoredDraft): Promise<SaveResult>;
   deleteDraft(id: string): Promise<SensingCommandResult>;
+  deleteLocalData(): Promise<SensingCommandResult>;
   loadPreferences(): Promise<
     { status: 'ok'; preferences: Preferences } | { status: 'unreadable'; message: string }
   >;
