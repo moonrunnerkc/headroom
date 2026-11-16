@@ -1,3 +1,4 @@
+import { existsSync, readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { SensingSnapshot } from '../../src/shared/sensing-types';
 import type {} from '../../src/renderer/bridge';
@@ -6,14 +7,18 @@ import { launchApp, removeUserData } from '../e2e/launch';
 /**
  * LIVE target-device probe of the real Presage SDK with the real camera. Requires a person in
  * front of the camera, macOS camera permission for the app under test, and PRESAGE_API_KEY in the
- * environment (never committed). It prints only lifecycle, cadence, quality, and rejection
+ * environment or evidence/local/presage-key.txt (gitignored; never committed). It prints only lifecycle, cadence, quality, and rejection
  * counts; no pulse values are printed or stored.
  */
-const apiKey = process.env['PRESAGE_API_KEY'] ?? '';
+const KEY_FILE = 'evidence/local/presage-key.txt';
+// The key comes from the environment or a gitignored local file, never from source control.
+const apiKey = (
+  process.env['PRESAGE_API_KEY'] ?? (existsSync(KEY_FILE) ? readFileSync(KEY_FILE, 'utf8') : '')
+).trim();
 const observeMs = Number(process.env['HEADROOM_OBSERVE_SECONDS'] ?? '120') * 1000;
 
 test('readiness, live pulse stream, gates, and teardown on this Mac', async () => {
-  test.skip(apiKey === '', 'Set PRESAGE_API_KEY to run the live SDK probe.');
+  test.skip(apiKey === '', `Set PRESAGE_API_KEY or write the key to ${KEY_FILE}.`);
   test.setTimeout(observeMs + 180_000);
   const { app, page, userData } = await launchApp();
   await page.getByRole('button', { name: /Sensing off/ }).click();
