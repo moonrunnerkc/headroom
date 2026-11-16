@@ -2,6 +2,15 @@
 
 Headroom adjusts presentation and pace while preserving a user's task, information, and authority. Read `headroom-build-prompt.md` for the full release specification. This file contains standing project rules, not evidence of completed implementation.
 
+## Architecture
+
+- `src/domain/`: pure, deterministic policy, queue, brief, and source-block code. No Electron, Node, React, or SDK imports (enforced by lint).
+- `src/shared/`: zod schemas and the typed IPC contract used by main, preload, and renderer.
+- `src/main/`: `index.ts` sets the SDK runtime path then loads `app-main.ts`; `sensing/` owns the Presage SDK (native camera in main), `ai/` owns Ollama on loopback, `storage/` owns atomic JSON files, `ipc-handlers.ts` validates every call.
+- `src/preload/`: the narrow `window.headroom` bridge; validates responses.
+- `src/renderer/`: React UI; both layouts keep the same DOM mounted and toggle `hidden`.
+- Policy constants live in `src/domain/pulse-policy-config.ts`; `gateValidation` stays `pending-device-validation` until live cadence is recorded in `docs/verification.md`.
+
 ## Product boundaries
 
 - Build one macOS arm64 Electron app with a project-brief form and a learning workspace sharing one presentation controller and optional-request queue.
@@ -58,7 +67,7 @@ Headroom adjusts presentation and pace while preserving a user's task, informati
 
 ## Checks and completion
 
-Implement and verify these npm scripts as part of setup: `dev`, `format:check`, `lint`, `typecheck`, `test`, `test:e2e`, `build`, `package:mac`, and `check`. They are required command names, not a claim that scripts already exist. Update this section if the implemented commands change.
+Implemented scripts (see README for details): `dev`, `format:check`, `lint` (ESLint + knip), `typecheck` (three tsconfigs), `test` (Vitest unit + jsdom UI), `build`, `check` (format, lint, types, tests, build), `test:e2e` (Playwright on the built Electron app), `package:mac` (electron-builder arm64, ad-hoc signed), `test:packaged` (smoke test of the `.app`), and target-device-only `test:live-ai` and `test:live-sdk`.
 
 - `check` must cover formatting, lint, types, unit/integration tests, and build. E2E and packaging are additional release gates.
 - Test timing boundaries, invalid signals, teardown, overrides, queue rules, lossless layout changes, persistence failures, AI failures, and privilege boundaries.
