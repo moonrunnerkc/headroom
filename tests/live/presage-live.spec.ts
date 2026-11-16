@@ -12,9 +12,13 @@ import { launchApp, removeUserData } from '../e2e/launch';
  */
 const KEY_FILE = 'evidence/local/presage-key.txt';
 // The key comes from the environment or a gitignored local file, never from source control.
+// The file may hold the bare key or a single NAME=value line (for example PRESAGE_API=...).
 const apiKey = (
   process.env['PRESAGE_API_KEY'] ?? (existsSync(KEY_FILE) ? readFileSync(KEY_FILE, 'utf8') : '')
-).trim();
+)
+  .trim()
+  .replace(/^(export\s+)?[A-Za-z_][A-Za-z0-9_]*\s*=\s*/, '')
+  .replace(/^(["'])(.*)\1$/, '$2');
 const observeMs = Number(process.env['HEADROOM_OBSERVE_SECONDS'] ?? '120') * 1000;
 
 test('readiness, live pulse stream, gates, and teardown on this Mac', async () => {
