@@ -1,5 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { expect, test, type Page } from '@playwright/test';
+import type {} from '../../src/renderer/bridge';
 import { launchApp, removeUserData } from './launch';
 
 async function axeViolations(page: Page) {
@@ -23,9 +24,7 @@ test('the renderer is isolated: no Node, no navigation, no inline script, only t
   expect(await page.evaluate(() => typeof (globalThis as { process?: unknown }).process)).toBe(
     'undefined',
   );
-  const bridgeKeys = await page.evaluate(
-    () => Object.keys((window as unknown as { headroom: object }).headroom).length,
-  );
+  const bridgeKeys = await page.evaluate(() => Object.keys(window.headroom ?? {}).length);
   expect(bridgeKeys).toBe(25);
   const startUrl = page.url();
   expect(startUrl.startsWith('app://headroom/')).toBe(true);
@@ -44,9 +43,7 @@ test('the renderer is isolated: no Node, no navigation, no inline script, only t
   expect(inline).toBe(false);
   const rejected = await page.evaluate(async () => {
     try {
-      await (
-        window as unknown as { headroom: { loadDraft: (id: string) => Promise<unknown> } }
-      ).headroom.loadDraft('../../etc/passwd');
+      await window.headroom?.loadDraft('../../etc/passwd');
       return 'accepted';
     } catch {
       return 'rejected';
@@ -107,7 +104,7 @@ test('every control in the status strip is reachable by keyboard', async () => {
   const reached = new Set<string>();
   for (let i = 0; i < 12; i++) {
     await page.keyboard.press('Tab');
-    reached.add(await page.evaluate(() => document.activeElement?.textContent?.trim() ?? ''));
+    reached.add(await page.evaluate(() => document.activeElement?.textContent.trim() ?? ''));
   }
   for (const name of ['Project brief', 'Learning', 'Standard', 'One thing at a time']) {
     expect([...reached]).toContain(name);

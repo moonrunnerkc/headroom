@@ -1,0 +1,33 @@
+# Local, unsigned-by-Developer-ID macOS arm64 build. Ad-hoc signing only; not notarized.
+appId: local.headroom.desktop
+productName: Headroom
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+  - package.json
+  # The SDK's per-platform runtimes are large; only darwin-arm64 ships, outside the asar below.
+  - '!node_modules/@smartspectra/node-sdk-*/**'
+  # koffi ships prebuilt binaries for many platforms; keep only darwin arm64.
+  - '!node_modules/koffi/build/koffi/!(darwin_arm64)/**'
+  - '!node_modules/koffi/src/**'
+  - '!node_modules/koffi/doc/**'
+asar: true
+asarUnpack:
+  # Native modules cannot be loaded from inside app.asar.
+  - node_modules/koffi/build/koffi/darwin_arm64/**
+mac:
+  target:
+    - target: dir
+      arch: arm64
+    - target: zip
+      arch: arm64
+  category: public.app-category.productivity
+  identity: '-'
+  hardenedRuntime: false
+  extendInfo:
+    NSCameraUsageDescription: Headroom uses the camera only after you start sensing, to estimate pulse for optional layout suggestions. Frames are not saved.
+  extraResources:
+    - from: node_modules/@smartspectra/node-sdk-darwin-arm64/
+      to: smartspectra/

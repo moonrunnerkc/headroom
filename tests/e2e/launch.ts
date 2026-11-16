@@ -16,7 +16,7 @@ export async function launchApp(userData?: string): Promise<LaunchedApp> {
   for (const [key, value] of Object.entries(process.env)) if (value !== undefined) env[key] = value;
   env['HEADROOM_USER_DATA_DIR'] = dir;
   delete env['ELECTRON_RENDERER_URL'];
-  const app = await electron.launch({ args: ['out/main/index.cjs'], env });
+  const app = await electron.launch({ args: ['.'], env });
   const page = await app.firstWindow();
   await page.getByRole('button', { name: 'Project brief' }).waitFor();
   return { app, page, userData: dir };
