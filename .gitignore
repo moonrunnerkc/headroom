@@ -1,0 +1,11 @@
+node_modules/
+out/
+dist/
+release/
+coverage/
+test-results/
+playwright-report/
+*.log
+.DS_Store
+# Local evidence may contain physiological or document data; never commit it.
+evidence/local/
